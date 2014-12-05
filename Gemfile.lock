@@ -8,6 +8,7 @@ GEM
     columnize (0.8.9)
     debugger-linecache (1.2.0)
     hex_string (1.0.1)
+    logger (1.2.8)
     slop (3.6.0)
 
 PLATFORMS
@@ -16,3 +17,4 @@ PLATFORMS
 DEPENDENCIES
   byebug
   hex_string (~> 1.0.1)
+  logger

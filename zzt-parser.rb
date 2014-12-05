@@ -31,8 +31,9 @@ end
 
 #puts File.read("./TOUR.ZZT")[0..3].to_hex_string
 
-tour_content = IO.read("./UNTITLED.ZZT")
-puts tour_content[0...2].to_hex_string
+#tour_content = IO.read("./UNTITLED.ZZT")
+tour_content = IO.read("./TOUR.ZZT")
+#puts tour_content[0...2].to_hex_string
 
 module Zzt
 
@@ -118,7 +119,7 @@ module Zzt
       }
     end
 
-    def parse(info, str, offset=0)
+    def parse(info, str, offset=0, &blk)
       # bubble prioritized properties to the top
       # perhaps one property depends on one already being extracted
       keys = info.keys.sort{|x, y| 
@@ -128,7 +129,7 @@ module Zzt
       offset = (offset.is_a?(String)) ? offset.hex_to_integer : offset
 
       keys.select{|k| !(info[:excludes][:properties] + [:excludes]).include?(k)}.each do |key|
-        start = info[key][:start].hex_to_integer + offset
+        start = ((info[key][:start].is_a?(String)) ? info[key][:start].hex_to_integer : info[key][:start]) + offset
         size_value = (info[key][:size].is_a?(Symbol)) ? self.send(info[key][:size]) : info[key][:size]
         size = size_value - 1
         zero_indexed = info[key][:zero_indexed]
@@ -154,8 +155,30 @@ module Zzt
           value = Hex.get_string(str, start, size)
         end
 
-        self.instance_variable_set("@#{key.to_s}", value)
+        if(block_given?)
+          blk.call(key, value)
+        else
+          self.instance_variable_set("@#{key.to_s}", value)
+        end
       end
+    end
+
+    alias_method :super_parse, :parse
+  end
+
+  class Flag < Common
+    INFO = {
+      name_length: {start: "00", size: 1, type: :integer, priority: 100}, 
+      name: {start: "01", size: 20, display_size: :name_length, type: :string}, 
+      excludes: {properties: []}
+    }
+
+    def initialize()
+      super(INFO)
+    end
+
+    def parse(str)
+      super(INFO, str)
     end
   end
 
@@ -180,82 +203,174 @@ module Zzt
       flags: {start: "32", size: 210, item: {length: {size: 1, type: :integer}, name: {size: 20, type: :string}}, default: {}}, 
       time_left: {start: "104", size: 2, type: :integer, default: 0}, 
       saved_game: {start: "108", size: 1, type: :integer, default: 0},
+
+      # excludes from parsing
       excludes: {properties: [:keys, :flags]}
     }
     
     def initialize()
       super(INFO)
     end
+
+    def parse(str)
+      super(INFO, str)
+
+      start = "08".hex_to_integer
+      stop = start+7
+      parse_keys(str[start..stop])
+
+      debugger
+
+      start = "32".hex_to_integer
+      stop = start+210
+      parse_flags(str[start..stop])
+    end
+
+    # priority makes sure keys are processed in the expected order
+    KEY_INFO = {
+      blue: {start: "00", size: 1, type: :integer, priority: 100, default: 0}, 
+      green: {start: "01", size: 1, type: :integer, priority: 99, default: 0}, 
+      cyan: {start: "02", size: 1, type: :integer, priority: 98, default: 0}, 
+      red: {start: "03", size: 1, type: :integer, priority: 97, default: 0}, 
+      purple: {start: "04", size: 1, type: :integer, priority: 96, default: 0}, 
+      yellow: {start: "05", size: 1, type: :integer, priority: 95, default: 0}, 
+      white: {start: "06", size: 1, type: :integer, priority: 94, default: 0}, 
+      excludes: {properties: []}
+    }
+
+    def parse_keys(str)
+      super_parse(KEY_INFO, str){|key, value|
+        keys[key] = value
+      }
+    end
+
+    def parse_flags(str)
+      size = 21
+      start = 0
+      (0..9).each do |idx|
+        stop = start + size
+
+        flag = Flag.new
+        flag.parse(str[start..stop])
+
+        if(flag.name_length > 0)
+          flags[flag.name.to_sym] = true
+        end
+        
+        start = stop
+      end
+    end
+
+    # FLAG_INFO = {
+    #   flag: length: {size: 1, type: :integer}, name: {size: 20, type: :string}, 
+    #   excludes: {properties: []}
+    # }
+
+    # def parse_flags(str)
+    #   flag_info = {}
+    #   start = 0
+    #   size = 21
+    #   (0..9).each do |idx|
+    #     flag_info["flag#{idx.to_s.rjust(2, "0")}".to_sym] = {length: {start: start, size: 1, type: :integer}, name: {start: start+1, size: 20, display_size: :title_length, type: :string}}
+    #     start += size
+    #   end
+    #   flag_info[:excludes] = {properties: []}
+
+    #   super_parse(flag_info, str){|key, name|
+    #     flags[name] = true if !name.nil? and (name.length > 0)
+    #   }
+    # end
   end
 
-  class Boards < Common
-    attr_accessor :header
-    def initialize(header)
-      @header = header
+  class Board
+    attr_accessor :header, :tiles, :info, :objects
+  end
+
+  class Game < Common
+    attr_accessor :header, :boards
+    attr_reader :logger
+
+    def initialize()
+      @header = nil
+      @boards = []
+      @logger = Logger.new File.new('./zzt-game.log', 'w')
+      @logger.level = Logger::DEBUG
     end
 
     def parse(str)
+
+      @header = Header.new()
+      @header.parse(str)
+      logger.debug @header
+      logger.debug @header.boards_count
+      
       offset = "200".hex_to_integer
       next_offset = offset
       tiles_cnt_max = (60*25)
       board_tiles_size = BoardTile.new.size
 
-      [0..(header.boards_count)].each do |idx|
+      @boards = (0...(@header.boards_count)).map do |idx|
+
+        board = Board.new
 
         # board header
-        board_header = BoardHeader.new
+        board.header = BoardHeader.new
         start = offset
-        stop = start + (board_header.size-1)
-        board_header.parse(str[offset..stop])
+        stop = start + (board.header.size-1)
+        board.header.parse(str[offset..stop])
         #next_offset += board_header.size #byte count for a single board header
         next_offset = stop+1
-        puts ">>> offset: #{offset}"
-        puts ">>> board_header.size: #{board_header.size}"
-        puts ">>> next_offset: #{next_offset}"
+        logger.debug ""
+        logger.debug idx.to_s
+        logger.debug ">>> offset: #{offset}"
+        logger.debug ">>> board_header.size: #{board.header.size}"
+        logger.debug ">>> next_offset: #{next_offset}"
 
         # board tiles
         tiles_cnt = 0
-        board_tiles = []
+        board.tiles = []
         while(tiles_cnt < tiles_cnt_max)
           start = stop
           stop += board_tiles_size
-          board_tiles << BoardTile.new
-          board_tiles.last.parse(str[start..stop])
+          board.tiles << BoardTile.new
+          board.tiles.last.parse(str[start..stop])
 
-          tiles_cnt += board_tiles.last.length
+          tiles_cnt += board.tiles.last.length
         end
         #next_offset += (board_tiles_size * board_tiles.length)
         next_offset = stop+1
-        puts ">>> board_tiles_length: #{board_tiles_size * board_tiles.length}"
-        puts ">>> next_offset: #{next_offset}"
+        logger.debug ">>> board_tiles_length: #{board_tiles_size * board.tiles.length}"
+        logger.debug ">>> next_offset: #{next_offset}"
 
         # board information
-        board_info = BoardInfo.new
+        board.info = BoardInfo.new
         start = stop
-        stop = start + (board_info.size-1)
-        board_info.parse(str[start..stop])
+        stop = start + (board.info.size-1)
+        board.info.parse(str[start..stop])
         next_offset = stop+1
-        puts ">>> board_info.size: " + board_info.size.to_s
-        puts ">>> next_offset: #{next_offset}"
+        logger.debug ">>> board_info.size: " + board.info.size.to_s
+        logger.debug ">>> next_offset: #{next_offset}"
 
         # board objects
         board_objects = []
 
         # add player for index 0
-        board_objects = []
-        (0..board_info.objects_count).each do |idx|
-          board_obj = BoardObject.new
+        board.objects = []
+        (0..board.info.objects_count).each do |idx|
+          board.objects << BoardObject.new
           start = stop+1
-          stop = start + (board_obj.size-1)
-          board_obj.parse(str[start..str.length])
-          stop += board_obj.data_length
-          puts ">#{idx}>> board_obj.size: " + board_obj.size.to_s
+          stop = start + (board.objects.last.size-1)
+          board.objects.last.parse(str[start..str.length])
+          stop += board.objects.last.data_length
+          logger.debug ">#{idx}>> board_obj.size: " + board.objects.last.size.to_s
 
           next_offset = stop+1
-          puts ">>> next_offset: #{next_offset}"
-
-          board_objects << board_obj
+          logger.debug ">>> next_offset: #{next_offset}"
         end
+
+        offset = next_offset
+
+        board
       end
 
       next_offset
@@ -263,6 +378,8 @@ module Zzt
   end
 
   class BoardHeader < Common
+    attr_reader :logger
+
     INFO = {
       board_size: {start: "00", size: 2, type: :integer}, 
       title_length: {start: "02", size: 1, type: :integer, priority: 100},
@@ -273,6 +390,7 @@ module Zzt
 
     def initialize()
       super(INFO)
+      @logger = Logger.new File.open('./zzt-game.log', 'a')
     end
 
     def size
@@ -281,7 +399,7 @@ module Zzt
 
     def parse(str)
       super(INFO, str)
-      puts ">>> board_size: #{board_size}"
+      logger.debug ">>> board_size: #{board_size}"
     end
   end
 
@@ -382,13 +500,13 @@ module Zzt
 
 end
 
-header = Zzt::Header.new()
-header.parse(Zzt::Header::INFO, tour_content)
-puts header
-puts header.boards_count
-
-boards = Zzt::Boards.new(header)
-puts ">>> " + boards.parse(tour_content).to_s
+=begin
+load './zzt-parser.rb'
+game = Zzt::Game.new()
+tour_content = IO.read("./TOUR.ZZT")
+game.parse(tour_content)
+=end
+#puts ">>> " + game.parse(tour_content).to_s
 
 
 #puts "0A".to_hex_string
@@ -460,6 +578,6 @@ puts ">>> " + boards.parse(tour_content).to_s
     #   @saved_game = Hex.get_integer(str, "108")
     # end
 
-puts 1000.to_s(16)
+#puts 1000.to_s(16)
 
 
