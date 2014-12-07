@@ -1,6 +1,6 @@
 module Zzt
   class BoardObject < Common
-    attr_accessor :objects_by_code, :x, :y
+    attr_accessor :x, :y, :tile
 
     COLOR_TABLE = {
       black:             {code: "00", colour: "Black"}, 
@@ -117,6 +117,7 @@ module Zzt
 
     def initialize()
       super(INFO)
+      @tile = nil
     end
 
     def size
@@ -127,111 +128,130 @@ module Zzt
       super(INFO, str)
     end
 
-    def to_s
-      super(self.instance_variables.select{|v| ![:@padding].include?(v) })
+    def to_s(inst_vars=nil)
+        # super(self.instance_variables.select{|v| ![:@padding].include?(v) })
+      if(inst_vars.nil?)
+        super(self.instance_variables.select{|v| ![:@padding].include?(v) })
+      else
+        super(inst_vars + [:@tile, :@offset])
+      end
+    end
+
+    def to_specific_object
+      tile_code = CODE_TABLE_BY_CODE[tile.code.upcase]
+      if(tile_code and tile_code.has_key?(:class_name))
+        specific_class = Object.const_get(tile_code[:class_name]).new
+        self.instance_variables.each do |v|
+          specific_class.instance_variable_set(v, self.instance_variable_get(v))
+        end
+
+        return specific_class
+      else
+        return self
+      end
     end
   end
 
   class Player < BoardObject
-    ATTRS = [:x, :y, :cycle]
+    ATTRS = [:@x, :@y, :@cycle]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class Scroll < BoardObject
-    ATTRS = [:x, :y, :cycle, :cur_ins, :data_length, :data]
+    ATTRS = [:@x, :@y, :@cycle, :@cur_ins, :@data_length, :@data]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
-  class Passageway < BoardObject
-    ATTRS = [:x, :y, {destination: :p3}]
+  class Passage < BoardObject
+    ATTRS = [:@x, :@y, {"@destination".to_sym => :@p3}]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class Duplicator < BoardObject
-    ATTRS = [:x, :y, {copy_src_x: :x_step}, {copy_src_y: :y_step}, {rate: :p2}]
+    ATTRS = [:@x, :@y, {"@copy_src_x".to_sym => :@x_step}, {"@copy_src_y".to_sym => :@y_step}, {"@rate".to_sym => :@p2}]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class Bear < BoardObject
-    ATTRS = [:x, :y, :cycle, {sensitivity: :p1}]
+    ATTRS = [:@x, :@y, :@cycle, {"@sensitivity".to_sym => :@p1}]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class Ruffian < BoardObject
-    ATTRS = [:x, :y, :cycle, {intelligence: :p1}, {rest_time: :p1}]
+    ATTRS = [:@x, :@y, :@cycle, {"@intelligence".to_sym => :@p1}, {"@rest_time".to_sym => :@p1}]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class Object < BoardObject
-    ATTRS = [:x, :y, :cycle, {ascii_char: :p1}, :p2, :cur_ins, :data_length, :data]
+    ATTRS = [:@x, :@y, :@cycle, {"@ascii_char".to_sym => :@p1}, :@p2, :@cur_ins, :@data_length, :@data]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class Slime < BoardObject
-    ATTRS = [:x, :y, :cycle, {speed: :p2}]
+    ATTRS = [:@x, :@y, :@cycle, {"@speed".to_sym => :@p2}]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class Shark < BoardObject
-    ATTRS = [:x, :y, :cycle, {intelligence: :p1}]
+    ATTRS = [:@x, :@y, :@cycle, {"@intelligence".to_sym => :@p1}]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class SpinningGun < BoardObject
-    ATTRS = [:x, :y, :cycle, {intelligence: :p1}, {firing_rate_mode: :p2}] # speed / firing_rate: 128 == stars
+    ATTRS = [:@x, :@y, :@cycle, {"@intelligence".to_sym => :@p1}, {"@firing_rate_mode".to_sym => :@p2}] # speed / firing_rate:@ 128 == stars
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class Pusher < BoardObject
-    ATTRS = [:x, :y, :x_step, :y_step, :cycle]
+    ATTRS = [:@x, :@y, :@x_step, :@y_step, :@cycle]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class Lion < BoardObject
-    ATTRS = [:x, :y, :cycle, {intelligence: :p1}]
+    ATTRS = [:@x, :@y, :@cycle, {"@intelligence".to_sym => :@p1}]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class Tiger < BoardObject
-    ATTRS = [:x, :y, :cycle, {intelligence: :p1}, {firing_rate_mode: :p2}] # speed / firing_rate: 128 == stars
+    ATTRS = [:@x, :@y, :@cycle, {"@intelligence".to_sym => :@p1}, {"@firing_rate_mode".to_sym => :@p2}] # speed / firing_rate:@ 128 == stars
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class CentipedeHead < BoardObject
-    ATTRS = [:x, :y, :cycle, {intelligence: :p1}, {deviance: :p2}]
+    ATTRS = [:@x, :@y, :@cycle, {"@intelligence".to_sym => :@p1}, {"@deviance".to_sym => :@p2}]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class CentipedeSegment < BoardObject
-    ATTRS = [:x, :y, :cycle]
+    ATTRS = [:@x, :@y, :@cycle]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
@@ -239,7 +259,7 @@ module Zzt
 
   class BlinkingWall < BoardObject
     # n: (0,-1), s: (0,1), w: (-1,0), e: (1,0)
-    ATTRS = [:x, :y, {x_direction: :x_step}, {y_direction: :y_step}, :cycle, {start_time: :p1}, {firing_period: :p2}]
+    ATTRS = [:@x, :@y, {"@x_direction".to_sym => :@x_step}, {"@y_direction".to_sym => :@y_step}, :@cycle, {"@start_time".to_sym => :@p1}, {"@firing_period".to_sym => :@p2}]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
@@ -260,21 +280,21 @@ module Zzt
   # end
 
   class Transporter < BoardObject
-    ATTRS = [:x, :y, {x_direction: :x_step}, {y_direction: :y_step}, :cycle]
+    ATTRS = [:@x, :@y, {"@x_direction".to_sym => :@x_step}, {"@y_direction".to_sym => :@y_step}, :@cycle]
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class Bullet < BoardObject
-    ATTRS = [:x, :y, {x_direction: :x_step}, {y_direction: :y_step}, :cycle, {owner: :p1}] # 0: player, 1: enemy
+    ATTRS = [:@x, :@y, {"@x_direction".to_sym => :@x_step}, {"@y_direction".to_sym => :@y_step}, :@cycle, {"@owner".to_sym => :@p1}] # 0:@ player, 1:@ enemy
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end
   end
 
   class Star < BoardObject
-    ATTRS = [:x, :y, {x_direction: :x_step}, {y_direction: :y_step}, :cycle, {owner: :p1}] # 0: player, 1: enemy
+    ATTRS = [:@x, :@y, {"@x_direction".to_sym => :@x_step}, {"@y_direction".to_sym => :@y_step}, :@cycle, {"@owner".to_sym => :@p1}] # 0:@ player, 1:@ enemy
     def to_s
       super(self.instance_variables.select{|v| ATTRS.include?(v) })
     end

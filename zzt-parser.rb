@@ -32,7 +32,7 @@ end
 #puts File.read("./TOUR.ZZT")[0..3].to_hex_string
 
 #tour_content = IO.read("./UNTITLED.ZZT")
-tour_content = IO.read("./TOUR.ZZT")
+#tour_content = IO.read("./TOUR.ZZT")
 #puts tour_content[0...2].to_hex_string
 
 module Zzt
@@ -83,6 +83,8 @@ module Zzt
   end
 
   class Common
+    attr_accessor :offset
+
     def to_s(instance_variables=nil)
       if(instance_variables.nil?)
         self.inspect().gsub(/, /, "\n")
@@ -219,8 +221,6 @@ module Zzt
       stop = start+7
       parse_keys(str[start..stop])
 
-      debugger
-
       start = "32".hex_to_integer
       stop = start+210
       parse_flags(str[start..stop])
@@ -286,9 +286,16 @@ module Zzt
     attr_accessor :header, :tiles, :info, :objects
 
     def object_at_pos(x, y)
-      tile = tiles.find{|t| t.x == x and t.y == y}
+      tile = tiles.find{|t| 
+        ((t.x)..(t.x+(t.length-1))).include?(x) and t.y == y
+        #t.x == x and t.y == y
+      }
       board_object = objects.find{|o| o.x == x and o.y == y}
       return {tile: tile, object: board_object}
+    end
+
+    def custom_objects
+
     end
   end
 
@@ -342,6 +349,7 @@ module Zzt
           board.tiles.last.parse(str[start..stop])
           board.tiles.last.x = (tiles_cnt % 60) + 1
           board.tiles.last.y = (tiles_cnt / 60).floor + 1
+          board.tiles.last.offset = start
 
           tiles_cnt += board.tiles.last.length
         end
@@ -365,10 +373,22 @@ module Zzt
         # add player for index 0
         board.objects = []
         (0..board.info.objects_count).each do |idx|
-          board.objects << Zzt::BoardObject.new
+          board_object = Zzt::BoardObject.new
           start = stop+1
-          stop = start + (board.objects.last.size-1)
-          board.objects.last.parse(str[start..str.length])
+          stop = start + (board_object.size-1)
+          board_object.parse(str[start..str.length])
+          # if(start == 10068)
+          #   debugger
+          # end
+          tile_and_object = board.object_at_pos(board_object.x, board_object.y)
+
+          if(tile_and_object[:tile].nil?)
+            debugger
+          end
+          board_object.tile = tile_and_object[:tile]
+
+          board.objects << board_object.to_specific_object
+          board.objects.last.offset = start
           stop += board.objects.last.data_length
           logger.debug ">#{idx}>> board_obj.size: " + board.objects.last.size.to_s
 
@@ -571,5 +591,4 @@ game.parse(tour_content)
     # end
 
 #puts 1000.to_s(16)
-
 
