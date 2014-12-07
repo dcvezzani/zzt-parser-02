@@ -284,6 +284,12 @@ module Zzt
 
   class Board
     attr_accessor :header, :tiles, :info, :objects
+
+    def object_at_pos(x, y)
+      tile = tiles.find{|t| t.x == x and t.y == y}
+      board_object = objects.find{|o| o.x == x and o.y == y}
+      return {tile: tile, object: board_object}
+    end
   end
 
   class Game < Common
@@ -334,6 +340,8 @@ module Zzt
           stop += board_tiles_size
           board.tiles << BoardTile.new
           board.tiles.last.parse(str[start..stop])
+          board.tiles.last.x = (tiles_cnt % 60) + 1
+          board.tiles.last.y = (tiles_cnt / 60).floor + 1
 
           tiles_cnt += board.tiles.last.length
         end
@@ -357,7 +365,7 @@ module Zzt
         # add player for index 0
         board.objects = []
         (0..board.info.objects_count).each do |idx|
-          board.objects << BoardObject.new
+          board.objects << Zzt::BoardObject.new
           start = stop+1
           stop = start + (board.objects.last.size-1)
           board.objects.last.parse(str[start..str.length])
@@ -404,6 +412,7 @@ module Zzt
   end
 
   class BoardTile < Common
+    attr_accessor :x, :y
     INFO = {
       length: {start: "00", size: 1, type: :integer}, 
       code: {start: "01", size: 1, type: :raw},
@@ -414,6 +423,8 @@ module Zzt
 
     def initialize()
       super(INFO)
+      @x = -1
+      @y = -1
     end
 
     def size
@@ -422,6 +433,23 @@ module Zzt
     
     def parse(str)
       super(INFO, str)
+    end
+
+    def contians_object?
+      !(["00", "01"].include?(code.upcase))
+    end
+
+    def contians_configurable_object?
+      CODE_TABLE_BY_CODE_FOR_CONFIGURABLE_OBJECTS.keys.include?(code.upcase)
+    end
+
+    def object_code
+      Zzt::BoardObject::CODE_TABLE_BY_CODE[code.upcase]
+    end
+
+    def to_s
+      @object_desc = object_code[:desc] unless object_code.nil?
+      super()
     end
   end
 
@@ -460,48 +488,12 @@ module Zzt
     end
   end
 
-  class BoardObject < Common
-    INFO = {
-      x: {start: "00", size: 1, type: :integer}, 
-      y: {start: "01", size: 1, type: :integer}, 
-      x_step: {start: "02", size: 2, type: :integer}, 
-      y_step: {start: "04", size: 2, type: :integer}, 
-      cycle: {start: "06", size: 2, type: :integer}, 
-      p1: {start: "08", size: 1, type: :integer}, 
-      p2: {start: "09", size: 1, type: :integer}, 
-      p3: {start: "0A", size: 1, type: :integer}, 
-      p4: {start: "0B", size: 4, type: :integer}, 
-      ut: {start: "0F", size: 1, type: :integer}, 
-      uc: {start: "10", size: 1, type: :integer}, 
-      pointer: {start: "11", size: 4, type: :integer}, 
-      cur_ins: {start: "15", size: 2, type: :integer}, 
-      data_length: {start: "17", size: 2, type: :integer, default: 0, priority: 100}, 
-      padding: {start: "19", size: 8, type: :raw}, 
-      data: {start: "21", size: :data_length, type: :string}, 
-      excludes: {properties: []}
-    }
-
-    def initialize()
-      super(INFO)
-    end
-
-    def size
-      super(INFO)
-    end
-    
-    def parse(str)
-      super(INFO, str)
-    end
-
-    def to_s
-      super(self.instance_variables.select{|v| ![:@padding].include?(v) })
-    end
-  end
-
 end
 
+require "./lib/zzt/board_object.rb"
+
 =begin
-load './zzt-parser.rb'
+#load './zzt-parser.rb'
 game = Zzt::Game.new()
 tour_content = IO.read("./TOUR.ZZT")
 game.parse(tour_content)
