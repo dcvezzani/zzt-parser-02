@@ -1,0 +1,481 @@
+<?xml version="1.0"?>
+<zzt>
+  <game>
+    <boards>
+      <board name="Introduction Screen">
+        <objects>
+          <object name="guy">
+            <x>42</x>
+            <y>23</y>
+            <data><![CDATA[@guy
+#cycle 10
+/i
+#change blue normal empty
+:loop
+:loop
+#play sxx001xxx9xxx1xxx
+#play sxx001x1x00441xxx
+#play sxx001xxx1xxx9x00
+#play s1x001x1x00441xxx
+#zap loop
+#send loop
+/i/i/i/i
+#change sliderns solid
+]]></data>
+          </object>
+        </objects>
+      </board>
+      <board name="Tour Office"/>
+      <board name="Tour Room I"/>
+      <board name="The Mixer"/>
+      <board name="Bad part of town"/>
+      <board name="The Elevator">
+        <objects>
+          <object name="vator">
+            <x>28</x>
+            <y>18</y>
+            <data><![CDATA[@vator
+#cycle 1
+#end
+:vw
+/w/w/w/w/w
+/w/w/w/w/w
+/w/w/w
+#end
+:ve
+/e/e/e/e/e/e/e/e/e/e/e/e/e
+/e/e/e/e/e/e/e/e/e/e/e/e/e
+/e/e/e/e/e/e/e/e/e/e/e/e/e
+/e/e/e/e/e/e/e/e/e/e/e/e/e
+#end
+]]></data>
+          </object>
+          <object name="#obj_001">
+            <x>28</x>
+            <y>19</y>
+            <data><![CDATA[#bind vator
+]]></data>
+          </object>
+          <object name="#obj_002">
+            <x>32</x>
+            <y>19</y>
+            <data><![CDATA[#bind vator
+]]></data>
+          </object>
+          <object name="#obj_003">
+            <x>32</x>
+            <y>18</y>
+            <data><![CDATA[#bind vator
+]]></data>
+          </object>
+          <object name="#obj_004">
+            <x>30</x>
+            <y>20</y>
+            <data><![CDATA[#bind door
+]]></data>
+          </object>
+          <object name="#obj_005">
+            <x>31</x>
+            <y>20</y>
+            <data><![CDATA[#bind door
+]]></data>
+          </object>
+          <object name="door">
+            <x>29</x>
+            <y>20</y>
+            <data><![CDATA[@door
+#cycle 1
+#end
+:dc
+/n/n/n
+#end
+:do
+/s/s/s
+]]></data>
+          </object>
+          <object name="#obj_007">
+            <x>31</x>
+            <y>23</y>
+            <data><![CDATA[#bind door
+]]></data>
+          </object>
+          <object name="#obj_008">
+            <x>30</x>
+            <y>23</y>
+            <data><![CDATA[#bind door
+]]></data>
+          </object>
+          <object name="#obj_009">
+            <x>29</x>
+            <y>23</y>
+            <data><![CDATA[#bind door
+]]></data>
+          </object>
+          <object name="door1">
+            <x>16</x>
+            <y>17</y>
+            <data><![CDATA[@door1
+#cycle 1
+#end
+:do
+/n/n/n
+#end
+:dc
+/s/s/s
+]]></data>
+          </object>
+          <object name="door2">
+            <x>3</x>
+            <y>17</y>
+            <data><![CDATA[@door2
+#cycle 1
+#end
+:do
+/n/n/n
+#end
+:dc
+/s/s/s
+]]></data>
+          </object>
+          <object name="door3">
+            <x>42</x>
+            <y>17</y>
+            <data><![CDATA[@door3
+#cycle 1
+#end
+:do
+/n/n/n
+#end
+:dc
+/s/s/s
+]]></data>
+          </object>
+          <object name="door4">
+            <x>55</x>
+            <y>17</y>
+            <data><![CDATA[@door4
+#cycle 1
+#end
+:do
+/n/n/n
+#end
+:dc
+/s/s/s
+]]></data>
+          </object>
+          <object name="#obj_014">
+            <x>17</x>
+            <y>17</y>
+            <data><![CDATA[#bind door1
+]]></data>
+          </object>
+          <object name="#obj_015">
+            <x>56</x>
+            <y>17</y>
+            <data><![CDATA[#bind door4
+]]></data>
+          </object>
+          <object name="#obj_016">
+            <x>18</x>
+            <y>17</y>
+            <data><![CDATA[#bind door1
+]]></data>
+          </object>
+          <object name="#obj_017">
+            <x>4</x>
+            <y>17</y>
+            <data><![CDATA[#bind door2
+]]></data>
+          </object>
+          <object name="#obj_018">
+            <x>5</x>
+            <y>17</y>
+            <data><![CDATA[#bind door2
+]]></data>
+          </object>
+          <object name="#obj_019">
+            <x>43</x>
+            <y>17</y>
+            <data><![CDATA[#bind door3
+]]></data>
+          </object>
+          <object name="#obj_020">
+            <x>44</x>
+            <y>17</y>
+            <data><![CDATA[#bind door3
+]]></data>
+          </object>
+          <object name="#obj_021">
+            <x>57</x>
+            <y>17</y>
+            <data><![CDATA[#bind door4
+]]></data>
+          </object>
+          <object name="#obj_022">
+            <x>43</x>
+            <y>20</y>
+            <data><![CDATA[#bind door3
+]]></data>
+          </object>
+          <object name="#obj_023">
+            <x>44</x>
+            <y>20</y>
+            <data><![CDATA[#bind door3
+]]></data>
+          </object>
+          <object name="#obj_024">
+            <x>57</x>
+            <y>20</y>
+            <data><![CDATA[#bind door4
+]]></data>
+          </object>
+          <object name="#obj_025">
+            <x>56</x>
+            <y>20</y>
+            <data><![CDATA[#bind door4
+]]></data>
+          </object>
+          <object name="#obj_026">
+            <x>55</x>
+            <y>20</y>
+            <data><![CDATA[#bind door4
+]]></data>
+          </object>
+          <object name="#obj_027">
+            <x>18</x>
+            <y>20</y>
+            <data><![CDATA[#bind door1
+]]></data>
+          </object>
+          <object name="#obj_028">
+            <x>17</x>
+            <y>20</y>
+            <data><![CDATA[#bind door1
+]]></data>
+          </object>
+          <object name="#obj_029">
+            <x>16</x>
+            <y>20</y>
+            <data><![CDATA[#bind door1
+]]></data>
+          </object>
+          <object name="#obj_030">
+            <x>5</x>
+            <y>20</y>
+            <data><![CDATA[#bind door2
+]]></data>
+          </object>
+          <object name="#obj_031">
+            <x>4</x>
+            <y>20</y>
+            <data><![CDATA[#bind door2
+]]></data>
+          </object>
+          <object name="#obj_032">
+            <x>3</x>
+            <y>20</y>
+            <data><![CDATA[#bind door2
+]]></data>
+          </object>
+          <object name="#obj_033">
+            <x>42</x>
+            <y>20</y>
+            <data><![CDATA[#bind door3
+]]></data>
+          </object>
+          <object name="timer">
+            <x>30</x>
+            <y>4</y>
+            <data><![CDATA[@timer
+#cycle 10
+/i/i
+#send door:dc
+/i
+#send all:vw
+/i/i
+#send door1:do
+/i
+#send door1:dc
+/i
+#send all:vw
+/i/i
+#send door2:do
+/i
+#send door2:dc
+/i
+#send all:ve
+/i/i/i/i/i/i
+#send door4:do
+/i
+#send door4:dc
+/i
+#send all:vw
+/i/i
+#send door3:do
+/i
+#send door3:dc
+/i
+#send all:vw
+/i/i
+#send door:do
+#restart
+]]></data>
+          </object>
+        </objects>
+      </board>
+      <board name="Engineer Required"/>
+      <board name="Tour Room II"/>
+      <board name="Kennel"/>
+      <board name="Key Puzzle"/>
+      <board name="g"/>
+      <board name="Dungeons I">
+        <objects>
+          <object name="#obj_000">
+            <x>5</x>
+            <y>12</y>
+            <data><![CDATA[#bind l
+]]></data>
+          </object>
+          <object name="l">
+            <x>5</x>
+            <y>11</y>
+            <data><![CDATA[@l
+#cycle 1
+#end
+:do
+/e
+#end
+:do2
+#die
+:vibe
+?w?e
+#end
+]]></data>
+          </object>
+          <object name="t1">
+            <x>22</x>
+            <y>10</y>
+            <data><![CDATA[@t1
+#cycle 1
+#end
+:do
+#die
+]]></data>
+          </object>
+          <object name="t3">
+            <x>28</x>
+            <y>10</y>
+            <data><![CDATA[@t3
+#cycle 1
+#end
+:do
+#die
+]]></data>
+          </object>
+          <object name="t4">
+            <x>31</x>
+            <y>10</y>
+            <data><![CDATA[@t4
+#cycle 1
+#end
+:do
+#die
+]]></data>
+          </object>
+          <object name="t5">
+            <x>34</x>
+            <y>10</y>
+            <data><![CDATA[@t5
+#cycle 1
+#end
+:do
+#die
+]]></data>
+          </object>
+          <object name="#obj_006">
+            <x>5</x>
+            <y>13</y>
+            <data><![CDATA[#bind l
+]]></data>
+          </object>
+          <object name="#obj_007">
+            <x>5</x>
+            <y>14</y>
+            <data><![CDATA[#bind l
+]]></data>
+          </object>
+          <object name="#obj_008">
+            <x>5</x>
+            <y>15</y>
+            <data><![CDATA[#bind l
+]]></data>
+          </object>
+          <object name="t2">
+            <x>25</x>
+            <y>10</y>
+            <data><![CDATA[@t2
+#cycle 1
+#end
+:do
+#die
+]]></data>
+          </object>
+          <object name="boss">
+            <x>18</x>
+            <y>21</y>
+            <data><![CDATA[@boss
+#change red passage empty
+#change passage red passage
+#cycle 3
+/i/i/i
+/i#l:vibe
+#play sxx000xxx0xxx0xxx0xxx
+/i#l:vibe
+/i#l:vibe
+:loop
+:loop
+:loop
+#play s902x4xx9x99x4088909x429x94044029
+/i#l:do
+/i#l:do
+/i#l:do
+/i#l:do
+/i#l:do
+#zap loop
+#send loop
+#t0:do
+/i#l:do
+/i#l:do
+/i#l:do
+/i#t1:do
+/i#l:do
+/i#l:do
+/i#l:do
+#t2:do
+/i#l:do
+/i#l:do
+/i#l:do
+#t3:do
+/i#l:do
+/i#l:do
+/i#l:do
+#t4:do
+/i#l:do
+/i#l:do
+/i#l:do
+#t5:do
+/i#l:do
+/i#l:do
+/i#l:do
+/i/i/i/i
+#l:do2
+#play s0xxx0x0x0x009
+/i/i
+Welcome to the Dungeons.
+]]></data>
+          </object>
+        </objects>
+      </board>
+    </boards>
+  </game>
+</zzt>

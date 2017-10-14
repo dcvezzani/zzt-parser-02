@@ -63,6 +63,7 @@ module Zzt
 
       #puts "idx: #{idx}, len: #{len}, str: #{str[idx..(idx+len)].to_hex_string}"
 
+      debugger
       hex_string = str[idx..(idx+len)].to_hex_string.split(/ /).reverse.join('')
       (hex_string.hex_to_integer)
     end
@@ -214,6 +215,9 @@ module Zzt
       super(INFO)
     end
 
+    def serialize()
+    end
+
     def parse(str)
       super(INFO, str)
 
@@ -310,9 +314,15 @@ module Zzt
       @logger.level = Logger::DEBUG
     end
 
+    def serialize()
+      @header = Header.new()
+      @header.serialize()
+    end
+
     def parse(str)
 
       @header = Header.new()
+      debugger
       @header.parse(str)
       logger.debug @header
       logger.debug @header.boards_count
