@@ -29,6 +29,13 @@ class String
   end
 end
 
+class Fixnum
+  def to_utf8(size)
+    ([self] + (1...size).map{|x| 0}).pack("U*")
+  end
+end
+
+
 #puts File.read("./TOUR.ZZT")[0..3].to_hex_string
 
 #tour_content = IO.read("./UNTITLED.ZZT")
@@ -63,7 +70,6 @@ module Zzt
 
       #puts "idx: #{idx}, len: #{len}, str: #{str[idx..(idx+len)].to_hex_string}"
 
-      debugger
       hex_string = str[idx..(idx+len)].to_hex_string.split(/ /).reverse.join('')
       (hex_string.hex_to_integer)
     end
@@ -120,6 +126,29 @@ module Zzt
         value = (info[key][:size].is_a?(Symbol)) ? self.send(info[key][:size]) : info[key][:size]
         value + total
       }
+    end
+
+    def serialize(info, &blk)
+      out = []
+      info.keys.select{|k| !(info[:excludes][:properties] + [:excludes]).include?(k)}.each do |key|
+        zero_indexed = info[key][:zero_indexed]
+        size = (info[key][:size].is_a?(Symbol)) ? self.send(info[key][:size]) : info[key][:size]
+        
+        value = self.instance_variable_get("@#{key.to_s}")
+        case(info[key][:type])
+        when :raw
+          value = [value.gsub(/ /, '')].pack("H*")
+        when :integer
+          value -= 1 if zero_indexed
+          value = value.to_utf8(size)
+        else
+          # string
+        end
+        
+        out << value
+      end
+
+      return out.join("");
     end
 
     def parse(info, str, offset=0, &blk)
@@ -213,9 +242,6 @@ module Zzt
     
     def initialize()
       super(INFO)
-    end
-
-    def serialize()
     end
 
     def parse(str)
@@ -314,15 +340,12 @@ module Zzt
       @logger.level = Logger::DEBUG
     end
 
-    def serialize()
-      @header = Header.new()
-      @header.serialize()
+    def serialize(info)
+      @header.serialize(Zzt::Header::INFO)
     end
 
     def parse(str)
-
       @header = Header.new()
-      debugger
       @header.parse(str)
       logger.debug @header
       logger.debug @header.boards_count
