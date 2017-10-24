@@ -1,11 +1,12 @@
 require 'byebug'
 require 'json'
 
-FDEBUG = true
+FDEBUG = false
 
 # tour_content = IO.read("./TOUR.ZZT")
 # tour_content = IO.read("../DEMO.ZZT")
-tour_content = IO.read("./MATT2.ZZT")
+tour_content = IO.read("./MATT.ZZT")
+# tour_content = IO.read("./MATT2.ZZT")
 # tour_content = IO.read("./XXX.ZZT")
 
 # tour_content[0..10]
@@ -153,6 +154,11 @@ game_header = keys.zip(values).inject({}){ |h,(k,v)| h[k] = v; h }
 game_header[:title] = game_header[:title_x].slice(0, game_header[:title_cnt])
 game_header.delete(:title_x)
 
+(1...9).each do |idx|
+  flg_cnt = (game_header["flg#{idx}_cnt".to_sym])
+  game_header["flg#{idx}".to_sym] = game_header["flg#{idx}".to_sym].slice(0, flg_cnt)
+end
+
 start = ("200".to_i(16))
 boards = {}
 board_stops = [512]
@@ -237,6 +243,9 @@ board_stops = [512]
   values = tour_content[start..board_stop].unpack(BOARD_INFO_PARSE)
   board_info = keys.zip(values).inject({}){ |h,(k,v)| h[k] = v; h }
 
+  message_len = (board_info[:message_len])
+  board_info[:message] = (board_info[:message]).slice(0, message_len)
+
   start += hex_length("00-57") #88
 
   (0..board_info[:obj_cnt]).each do |obj_idx|
@@ -254,7 +263,7 @@ board_stops = [512]
 
     File.open("./chk.txt", "a"){|f| f.write "<< #{object_info[:x]},#{object_info[:y]}: #{object_info}\n" } if FDEBUG
     
-  debugger if obj_idx == 55
+  # debugger if obj_idx == 55
     
     begin
       fnd_idx = objects.select{|idx, obj| ((obj[:x] == object_info[:x]) && (obj[:y] == object_info[:y]))}.first.first
@@ -293,22 +302,20 @@ File.open("./game.txt", "w"){|f| f.write ({game: {header: game_header, boards: b
 File.open("./matt.zzt", "wb"){|f| f.write ""}
 File.open("./matt.zzt", "ab"){|f|
 
+  game_header[:boards_cnt_z] = (boards.size - 1)
 
+  (1...9).each do |idx|
+    game_header["flg#{idx}_cnt".to_sym] = (game_header["flg#{idx}".to_sym]).length
+  end
+  
 # TODO: fill spaces with '00' instead of '20'
-  f.write [:magic_num, :boards_cnt_z, :ammo, :gems, :bk, :gk, :ck, :rk, :pk, :yk, :wk, :health, :board_str, :torch_cnt, :tcycle_cnt, :ecycle_cnt, :pad_01, :score, :title_cnt, :title_x, :flg1_cnt, :flg1, :flg2_cnt, :flg2, :flg3_cnt, :flg3, :flg4_cnt, :flg4, :flg5_cnt, :flg5, :flg6_cnt, :flg6, :flg7_cnt, :flg7, :flg8_cnt, :flg8, :flg9_cnt, :flg9, :pad_02, :timeleft, :pad_03, :saved_game, :pad_04 ].map{|key| game_header[key]}.pack(GAME_HEADER_PARSE)
-
-# GAME_HEADER_PARSE = "H4S3C7S7CA20CA20CA20CA20CA20CA20CA20CA20CA20CA20H40SH4CH496"
-# BOARD_HEADER_PARSE = "SCA33H32"
-# BOARD_INFO_PARSE = "C8H116H4SH32S"
-# TILE_PARSE = "CH2H2"
-# TEXT_PARSE = "A"
-# OBJECT_PARSE = "CCSSSCCCH8CCH8SSH16"
-# OBJECT_DATA_PARSE = "A*"
+  f.write [:magic_num, :boards_cnt_z, :ammo, :gems, :bk, :gk, :ck, :rk, :pk, :yk, :wk, :health, :board_str, :torch_cnt, :tcycle_cnt, :ecycle_cnt, :pad_01, :score, :title_cnt, :title, :flg1_cnt, :flg1, :flg2_cnt, :flg2, :flg3_cnt, :flg3, :flg4_cnt, :flg4, :flg5_cnt, :flg5, :flg6_cnt, :flg6, :flg7_cnt, :flg7, :flg8_cnt, :flg8, :flg9_cnt, :flg9, :pad_02, :timeleft, :pad_03, :saved_game, :pad_04 ].map{|key| game_header[key]}.pack(GAME_HEADER_PARSE)
 
 # hex_length("03-23")
 
-# boards[board_idx] = {header: board_header, info: board_info, tiles: tiles, objects: objects}
 boards.each do |idx, board|
+
+  board[:header][:title_cnt] = (board[:header][:title]).length
 
   board_content = ''
   board_content += [:title_cnt, :title, :pad_01].map{|key| board[:header][key]}.pack(BOARD_HEADER_LESS_PARSE)
@@ -324,7 +331,7 @@ boards.each do |idx, board|
     col = (tile_pos%60)
     
     # debugger if tile_pos == 1500
-    puts ">>> #{tile_pos}: #{col},#{row} #{(board[:tiles][tile_idx])}"
+    puts ">>> #{tile_pos}: #{col},#{row} #{(board[:tiles][tile_idx])}" if FDEBUG
     code = (board[:tiles][tile_idx])[1]
     decimal_code = code.to_i(16)
     tile = (board[:tiles][tile_idx])
@@ -336,6 +343,9 @@ boards.each do |idx, board|
 
     board_content += (tile.pack(TILE_PARSE))
   end
+
+  board[:info][:message_len] = (board[:info][:message]).length
+  board[:info][:obj_cnt] = (board[:objects].size - 1)
 
   board_content += [:max_shots, :darkness, :bn, :bs, :bw, :be, :reenter, :message_len, :message, :pad_01, :time_limit, :pad_02, :obj_cnt].map{|key| board[:info][key]}.pack(BOARD_INFO_PARSE)
 
