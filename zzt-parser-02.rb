@@ -3,14 +3,18 @@ require 'json'
 
 class ZztParser02
   
-  def initialize(src_file = nil)
-    self.src_file = src_file
-    self.game_header = {}
-    self.boards = {}
+  attr_accessor :src_file, :game_header, :boards
 
-    if src_file
-      file_content = IO.read(src_file)
-      self.game_header, self.boards = Deserializer.new(file_content).go(true)
+  FDEBUG = false
+
+  def initialize(src_file = nil)
+    @src_file = src_file
+    @game_header = {}
+    @boards = {}
+
+    if @src_file
+      file_content = IO.read(@src_file)
+      @game_header, self.boards = Deserializer.new(file_content).go(true)
     end
   end
 
@@ -19,8 +23,12 @@ class ZztParser02
 
     file_content = IO.read(src_file)
     game = JSON::load(file_content)["game"]
-    self.game_header, self.boards = Importer.new(game).go
+    parser.game_header, parser.boards = Importer.new(game).go
+    parser
+  end
 
+  def serialize(dst_file = './game.zzt')
+    Serializer.new(dst_file, self.game_header, self.boards).go
   end
 
   def deserialize(dst_file = './game.txt')
@@ -28,16 +36,19 @@ class ZztParser02
   end
 
   class Importer
-    def initialize(json)
-      self.json = json
+    
+    attr_accessor :json, :_game_header, :_boards, :_board_header, :_board_info, :_tiles, :_objects
 
-      self._game_header = {}
-      self._boards = {}
+    def initialize(json)
+      @json = json
+
+      @_game_header = {}
+      @_boards = {}
       
-      self._board_header = {}
-      self._board_info = {}
-      self._tiles = []
-      self._objects = {0 => nil}
+      @_board_header = {}
+      @_board_info = {}
+      @_tiles = []
+      @_objects = {0 => nil}
     end
       
     def go
@@ -48,37 +59,123 @@ class ZztParser02
 
       game['boards'].each do |idx, board|
 
+        game_board_objects = board["objects"]
         self._board_header = board['header'].inject({}){|a,b| a.merge!({b[0].to_sym => b[1]})}
         self._tiles = board['tiles']
         self._board_info = board['info'].inject({}){|a,b| a.merge!({b[0].to_sym => b[1]})}
-        self._board_info[:obj_cnt] = (game['objects'].length - 1)
+        self._board_info[:obj_cnt] = (game_board_objects.length - 1)
         
         self._objects = {}
         board['objects'].each do |idx, object|
-          self._objects[idx.to_i(10)] = game['objects'][idx]['info'].inject({}){|a,b| a.merge!({b[0].to_sym => b[1]})}
+          self._objects[idx] = game_board_objects[idx]['info'].inject({}){|a,b| a.merge!({b[0].to_sym => b[1]})}
         end
 
-        self._boards[idx.to_i(10)] = {header: self._board_header, info: self._board_info, tiles: self._tiles, objects: self._objects}
+        self._boards[idx] = {header: self._board_header, info: self._board_info, tiles: self._tiles, objects: self._objects}
 
-        [self._game_header, self._boards]
+      end
+
+      [self._game_header, self._boards]
+    end
+  end
+
+  class Serializer
+
+    #attr_accessor :content, :start, :board_stop, :_game_header, :_boards, :_board_header, :_board_info, :_tiles, :_objects
+    attr_accessor :dst_file, :_game_header, :_boards
+
+    def initialize(dst_file, game_header, boards)
+      @_game_header = game_header
+      @_boards = boards
+      @dst_file = dst_file
+    end
+
+    def go
+      File.open(dst_file, "wb"){|f| f.write ""}
+      File.open(dst_file, "ab"){|f|
+        game_header{|content| f.write(content)}
+        boards{|content| f.write(content)}
+      }
+    end
+
+    def game_header(&blk)
+      self._game_header[:boards_cnt_z] = (self._boards.size - 1)
+      
+      (1...9).each do |idx|
+        self._game_header["flg#{idx}_cnt".to_sym] = (self._game_header["flg#{idx}".to_sym]).length
+      end
+      
+      # TODO: fill spaces with '00' instead of '20'
+      blk.call [:magic_num, :boards_cnt_z, :ammo, :gems, :bk, :gk, :ck, :rk, :pk, :yk, :wk, :health, :board_str, :torch_cnt, :tcycle_cnt, :ecycle_cnt, :pad_01, :score, :title_cnt, :title, :flg1_cnt, :flg1, :flg2_cnt, :flg2, :flg3_cnt, :flg3, :flg4_cnt, :flg4, :flg5_cnt, :flg5, :flg6_cnt, :flg6, :flg7_cnt, :flg7, :flg8_cnt, :flg8, :flg9_cnt, :flg9, :pad_02, :timeleft, :pad_03, :saved_game, :pad_04 ].map{|key| self._game_header[key]}.pack(GAME_HEADER_PARSE)
+    end
+
+    def boards(&blk)
+      self._boards.each do |idx, board|
+
+        board[:header][:title_cnt] = (board[:header][:title]).length
+
+        board_content = ''
+        board_content += [:title_cnt, :title, :pad_01].map{|key| board[:header][key]}.pack(BOARD_HEADER_LESS_PARSE)
+
+          # repeat_cnt, code, raw_data = tour_content[start..board_stop].unpack("CH2A")
+          #   colour = raw_data.unpack('H*')[0]
+            # tiles << [repeat_cnt, code, text]
+        
+        tile_pos = 0
+        (0...board[:tiles].length).each do |tile_idx|
+          tile_pos += (board[:tiles][tile_idx])[0]
+          row = (tile_pos/60).round + 1
+          col = (tile_pos%60)
+          
+          # debugger if tile_pos == 1500
+          puts ">>> #{tile_pos}: #{col},#{row} #{(board[:tiles][tile_idx])}" if FDEBUG
+          code = (board[:tiles][tile_idx])[1]
+          decimal_code = code.to_i(16)
+          tile = (board[:tiles][tile_idx])
+          
+          if (decimal_code >= "2f".to_i(16))
+            character = [[(board[:tiles][tile_idx][2])].pack("A")].first
+            tile = board[:tiles][tile_idx][0..1] + [character.ord.to_s(16)]
+          end
+
+          board_content += (tile.pack(TILE_PARSE))
+        end
+
+        board[:info][:message_len] = (board[:info][:message]).length
+        board[:info][:obj_cnt] = (board[:objects].size - 1)
+
+        board_content += [:max_shots, :darkness, :bn, :bs, :bw, :be, :reenter, :message_len, :message, :pad_01, :time_limit, :pad_02, :obj_cnt].map{|key| board[:info][key]}.pack(BOARD_INFO_PARSE)
+
+        board[:objects].each do |idx, object|
+          board_content += [:x, :y, :x_step, :y_step, :cycle, :p1, :p2, :p3, :p4, :ut, :uc, :pointer, :cur_ins, :len, :pad_01].map{|key| object[key]}.pack(OBJECT_PARSE)
+
+          if object[:data]
+            board_content += object[:data].pack(OBJECT_DATA_PARSE)
+          end
+        end
+
+        blk.call ([board_content.length].pack("S") + board_content)
       end
     end
   end
 
   class Deserializer
-    def initialize(content)
-      self.content = content
-      self.start = nil
-      self.board_stop = nil
 
-      self._game_header = {}
-      self._boards = {}
+    attr_accessor :content, :start, :board_stop, :_game_header, :_boards, :_board_header, :_board_info, :_tiles, :_objects, :current_board_idx
+
+    def initialize(content)
+      @content = content
+      @start = nil
+      @board_stop = nil
+
+      @_game_header = {}
+      @_boards = {}
+      @current_board_idx = nil
 
       # TODO: shouldn't be instance variables
-      self._board_header = {}
-      self._board_info = {}
-      self._tiles = []
-      self._objects = {0 => nil}
+      @_board_header = {}
+      @_board_info = {}
+      @_tiles = []
+      @_objects = {0 => nil}
     end
 
     def go(reparse = true)
@@ -94,6 +191,7 @@ class ZztParser02
       return self._boards if self._boards.size > 0 and !reparse
 
       (0..self.game_header(reparse)[:boards_cnt_z]).each do |board_idx|
+        self.current_board_idx = board_idx
         self._boards[board_idx] = {
           header: self.board_header(true), 
           tiles: self.tiles(true), 
@@ -125,7 +223,7 @@ class ZztParser02
         begin
           fnd_idx = self._objects.select{|idx, obj| ((obj[:x] == object_info[:x]) && (obj[:y] == object_info[:y]))}.first.first
         rescue
-          err = {board_idx: board_idx, board_header: board_header, board_info: board_info, obj_cnt: [board_info[:obj_cnt], self._objects.size], obj_idx: obj_idx, object_info: object_info}
+          err = {board_idx: self.current_board_idx, board_header: board_header, board_info: board_info, obj_cnt: [board_info[:obj_cnt], self._objects.size], obj_idx: obj_idx, object_info: object_info}
           throw "Error: #{err}"
         end
 
@@ -148,7 +246,7 @@ class ZztParser02
       message_len = (self._board_info[:message_len])
       self._board_info[:message] = (self._board_info[:message]).slice(0, message_len)
 
-      self.start += hex_length("00-57") #88
+      self.start += ZztParser02::hex_length("00-57") #88
 
       self._board_info
     end
@@ -184,7 +282,7 @@ class ZztParser02
         else
           colour = raw_data
 
-          if %w{04 0a 0b 0c 0d 0f 10 11 12 1d 22 23 24 25 26 27 28 29 2a 21 2b 2c 2d}.include?(code)
+          if %w{04 0a 0b 0c 0d 0f 10 11 12 1d 1e 22 23 24 25 26 27 28 29 2a 21 2b 2c 2d}.include?(code)
             (1..repeat_cnt).each do
               tile_pos = (tile_cnt + 1)
               row = (tile_pos/60).round + 1
@@ -225,13 +323,13 @@ class ZztParser02
       return self._board_header if self._board_header.size > 0 and !reparse
 
       keys = [:board_size, :title_cnt, :title_x, :pad_01]
-      values = self.content[(start)...(start + hex_length("00-34"))].unpack(ZztParser02::BOARD_HEADER_PARSE)
+      values = self.content[(start)...(start + ZztParser02::hex_length("00-34"))].unpack(ZztParser02::BOARD_HEADER_PARSE)
       self._board_header = keys.zip(values).inject({}){ |h,(k,v)| h[k] = v; h }
       self._board_header[:title] = self._board_header[:title_x].slice(0, self._board_header[:title_cnt])
       self._board_header.delete(:title_x)
       self.board_stop = (self.start + self._board_header[:board_size] + 2)
 
-      self.start = self.start + hex_length("00-34")
+      self.start = self.start + ZztParser02::hex_length("00-34")
       
       self._board_header
     end
@@ -258,12 +356,12 @@ class ZztParser02
 
   private
 
-  def hex_add_dec(hex, dec, zero=false)
+  def self.hex_add_dec(hex, dec, zero=false)
     offset = (zero) ? (dec - 1) : dec
     (hex.to_i(16) + offset).to_s(16)
   end
 
-  def hex_length(exp)
+  def self.hex_length(exp)
     parts = exp.split(/-/)
     (parts[1].to_i(16) - parts[0].to_i(16)) + 1
   end
@@ -387,13 +485,16 @@ class ZztParser02
    "3c" => "Yellow blinking text", 
    "3d" => "Grey blinking text"
   }
-  # hex_length("13-26")
-  # hex_length("108-200")
+  # ZztParser02::hex_length("13-26")
+  # ZztParser02::hex_length("108-200")
   
 end
 
-game = ZztParser02.new('/Users/davidvezzani/ruby_apps/zzt-parser-02/matt.zzt')
+# cd "/Users/davidvezzani/DOS Games/Zzt.boxer/C.harddisk/zzt"
+# ln -s /Users/davidvezzani/ruby_apps/zzt-parser-02/zzt/tour.zzt
+game = ZztParser02.new('/Users/davidvezzani/ruby_apps/zzt-parser-02/zzt/TOUR.ZZT')
 game.deserialize('/Users/davidvezzani/ruby_apps/zzt-parser-02/matt.json')
 
 game = ZztParser02.import('/Users/davidvezzani/ruby_apps/zzt-parser-02/matt.json')
-game.serialize('/Users/davidvezzani/ruby_apps/zzt-parser-02/matt.zzt')
+# cat /Users/davidvezzani/ruby_apps/zzt-parser-02/matt.json | jq '.'
+game.serialize('/Users/davidvezzani/ruby_apps/zzt-parser-02/MATT.ZZT')
