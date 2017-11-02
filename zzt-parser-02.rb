@@ -492,9 +492,12 @@ end
 
 # cd "/Users/davidvezzani/DOS Games/Zzt.boxer/C.harddisk/zzt"
 # ln -s /Users/davidvezzani/ruby_apps/zzt-parser-02/zzt/tour.zzt
-game = ZztParser02.new('/Users/davidvezzani/ruby_apps/zzt-parser-02/zzt/TOUR.ZZT')
-game.deserialize('/Users/davidvezzani/ruby_apps/zzt-parser-02/matt.json')
+zzt_parser_path = '/Users/davidvezzani/zzt_parser_path/zzt-parser-02'
+zzt_parser_path = '/Users/davidvezzani/ruby-app/zzt-parser.new'
 
-game = ZztParser02.import('/Users/davidvezzani/ruby_apps/zzt-parser-02/matt.json')
-# cat /Users/davidvezzani/ruby_apps/zzt-parser-02/matt.json | jq '.'
-game.serialize('/Users/davidvezzani/ruby_apps/zzt-parser-02/MATT.ZZT')
+game = ZztParser02.new("#{zzt_parser_path}/zzt/TOUR.ZZT")
+game.deserialize("#{zzt_parser_path}/matt.json")
+
+game = ZztParser02.import("#{zzt_parser_path}/matt.json")
+# cat /Users/davidvezzani/zzt_parser_path/matt.json | jq '.'
+game.serialize("#{zzt_parser_path}/MATT.ZZT")
