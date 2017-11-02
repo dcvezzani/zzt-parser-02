@@ -1,0 +1,65 @@
+cat matt.json | jq '. | keys'
+
+cat matt.json | jq '.game | keys'
+cat matt.json | jq '.game.header | keys'
+cat matt.json | jq '.game.header | keys | map(select(test("^[a-z]k$"; "g")))'
+cat matt.json | jq '.game.header | keys | map(select(test("^flg[0-9]$"; "g")))'
+
+cat matt.json | jq '.game.header | to_entries | map(select(.key | test("^[a-z]k$"; "g"))) | from_entries'
+cat matt.json | jq '.game.header | to_entries | map(select(.key | test("^flg[0-9]$"; "g"))) | from_entries'
+cat matt.json | jq '.game.header | to_entries | map(select(.key | test("^(ammo|ecycle_cnt|gems|health|saved_game|score|tcycle_cnt|timeleft|title|torch_cnt)$"; "g"))) | from_entries'
+
+    g - Global search (find all matches, not just the first)
+    i - Case insensitive search
+    m - Multi line mode (‘.’ will match newlines)
+    n - Ignore empty matches
+    p - Both s and m modes are enabled
+    s - Single line mode (‘^’ -> ‘\A’, ‘$’ -> ‘\Z’)
+    l - Find longest possible matches
+    x - Extended regex format (ignore whitespace and comments)
+
+[
+  "ammo",
+  "bk",
+  "board_str",
+  "boards_cnt_z",
+  "ck",
+  "ecycle_cnt",
+  "flg1",
+  "flg1_cnt",
+  "flg2",
+  "flg2_cnt",
+  "flg3",
+  "flg3_cnt",
+  "flg4",
+  "flg4_cnt",
+  "flg5",
+  "flg5_cnt",
+  "flg6",
+  "flg6_cnt",
+  "flg7",
+  "flg7_cnt",
+  "flg8",
+  "flg8_cnt",
+  "flg9",
+  "flg9_cnt",
+  "gems",
+  "gk",
+  "health",
+  "magic_num",
+  "pad_01",
+  "pad_02",
+  "pad_03",
+  "pad_04",
+  "pk",
+  "rk",
+  "saved_game",
+  "score",
+  "tcycle_cnt",
+  "timeleft",
+  "title",
+  "title_cnt",
+  "torch_cnt",
+  "wk",
+  "yk"
+]
