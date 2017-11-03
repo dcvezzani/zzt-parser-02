@@ -223,7 +223,7 @@ class ZztParser02
         begin
           fnd_idx = self._objects.select{|idx, obj| ((obj[:x] == object_info[:x]) && (obj[:y] == object_info[:y]))}.first.first
         rescue
-          err = {board_idx: self.current_board_idx, board_header: board_header, board_info: board_info, obj_cnt: [board_info[:obj_cnt], self._objects.size], obj_idx: obj_idx, object_info: object_info}
+          err = {board_idx: self.current_board_idx, board_header: board_header, board_info: board_info, obj_cnt: [board_info[:obj_cnt], self._objects.size], obj_idx: obj_idx, object_info: object_info, all_objects: self._objects}
           throw "Error: #{err}"
         end
 
@@ -282,11 +282,16 @@ class ZztParser02
         else
           colour = raw_data
 
-          if %w{04 0a 0b 0c 0d 0f 10 11 12 1d 1e 22 23 24 25 26 27 28 29 2a 21 2b 2c 2d}.include?(code)
+          if ZztParser02::VALID_OBJECTS.include?(code)
             (1..repeat_cnt).each do
               tile_pos = (tile_cnt + 1)
-              row = (tile_pos/60).round + 1
-              col = (tile_pos%60)
+              if (tile_pos != 0 && (tile_pos%60) == 0)
+                row = (tile_pos/60)
+                col = 60
+              else
+                row = (tile_pos/60).round + 1
+                col = (tile_pos%60)
+              end
               
               self._tiles << [1, code, colour]
 
@@ -381,6 +386,8 @@ class ZztParser02
   TILE_PARSE = "CH2H2"
   OBJECT_PARSE = "CCSSSCCCH8CCH8SSH16"
   OBJECT_DATA_PARSE = "A*"
+
+  VALID_OBJECTS = %w{04 0a 0b 0c 0d 0f 10 11 12 1d 1e 22 23 24 25 26 27 28 29 2a 21 2b 2c 2d}
 
   public
 
@@ -492,10 +499,10 @@ end
 
 # cd "/Users/davidvezzani/DOS Games/Zzt.boxer/C.harddisk/zzt"
 # ln -s /Users/davidvezzani/ruby_apps/zzt-parser-02/zzt/tour.zzt
-zzt_parser_path = '/Users/davidvezzani/zzt_parser_path/zzt-parser-02'
-zzt_parser_path = '/Users/davidvezzani/ruby-app/zzt-parser.new'
+zzt_parser_path = '/Users/davidvezzani/ruby_apps/zzt-parser-02'
+# zzt_parser_path = '/Users/davidvezzani/ruby-app/zzt-parser.new'
 
-game = ZztParser02.new("#{zzt_parser_path}/zzt/TOUR.ZZT")
+game = ZztParser02.new("#{zzt_parser_path}/zzt/caves.zzt")
 game.deserialize("#{zzt_parser_path}/matt.json")
 
 game = ZztParser02.import("#{zzt_parser_path}/matt.json")
