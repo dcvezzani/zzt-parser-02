@@ -5,9 +5,66 @@ cat matt.json | jq '.game.header | keys'
 cat matt.json | jq '.game.header | keys | map(select(test("^[a-z]k$"; "g")))'
 cat matt.json | jq '.game.header | keys | map(select(test("^flg[0-9]$"; "g")))'
 
-cat matt.json | jq '.game.header | to_entries | map(select(.key | test("^[a-z]k$"; "g"))) | from_entries'
-cat matt.json | jq '.game.header | to_entries | map(select(.key | test("^flg[0-9]$"; "g"))) | from_entries'
-cat matt.json | jq '.game.header | to_entries | map(select(.key | test("^(ammo|ecycle_cnt|gems|health|saved_game|score|tcycle_cnt|timeleft|title|torch_cnt)$"; "g"))) | from_entries'
+cat matt.json | jq '(.game.header | to_entries | map(select(.key | test("^[a-z]k$"; "g"))) | from_entries)'
+cat matt.json | jq '(.game.header | to_entries | map(select(.key | test("^flg[0-9]$"; "g"))) | from_entries)'
+
+
+# game header
+cat matt.json | jq '(.game.header | to_entries | map(select(.key | test("^(ammo|ecycle_cnt|gems|health|saved_game|score|tcycle_cnt|timeleft|title|torch_cnt)$"; "g"))) | from_entries) as $game_header | (.game.header | to_entries | map(select(.key | test("^flg[0-9]$"; "g"))) | from_entries) as $flags | (.game.header | to_entries | map(select(.key | test("^[a-z]k$"; "g"))) | from_entries) as $keys | $game_header + {flags: $flags} + {keys: $keys}'
+
+
+cat matt.json | jq '.game.boards | keys'
+cat matt.json | jq '.game.boards."0" | keys'
+cat matt.json | jq '.game.boards."0".header | keys'
+
+
+# board header
+cat matt.json | jq '(.game.boards."0".header | to_entries | map(select(.key | test("^(board_size|title)$"; "g"))) | from_entries)'
+
+
+# boards summary
+cat matt.json | jq '.game.boards | to_entries | map(.value.header | to_entries | map(select(.key | test("^(board_size|title)$"; "g"))) | from_entries)'
+cat matt.json | jq '.game.boards | to_entries | map(.value.header | to_entries | map(select(.key | test("^(board_size|title)$"; "g"))) | from_entries)[1]'
+
+# boards summary, with index
+cat matt.json | jq '.game.boards | to_entries | map(.key as $key | .value.header | to_entries | [{key: "idx", value: $key}] + map(select(.key | test("^(idx|board_size|title)$"; "g"))) | from_entries)'
+
+
+cat matt.json | jq '(.game.boards."3".info) | keys'
+cat matt.json | jq '(.game.boards."3".objects) | keys'
+cat matt.json | jq '(.game.boards."3".tiles) | keys'
+
+
+# board info, with index
+cat matt.json | jq '(.game.boards."0".header | to_entries | map(select(.key | test("^(board_size|title)$"; "g"))) | from_entries) + (
+.game.boards."3".info.bn as $bn | (.game.boards[($bn | tostring)].header.title) as $bn_name | 
+.game.boards."3".info.bs as $bs | (.game.boards[($bs | tostring)].header.title) as $bs_name | 
+.game.boards."3".info.be as $be | (.game.boards[($be | tostring)].header.title) as $be_name | 
+.game.boards."3".info.bw as $bw | (.game.boards[($bw | tostring)].header.title) as $bw_name | 
+((.game.boards."3".info) | to_entries | map(select(.key | test("^darkness|max_shots|message|obj_cnt|reenter|time_limit$"; "g"))) | from_entries) + {bn: {id: $bn, name: $bn_name}, bs: {id: $bs, name: $bs_name}, be: {id: $be, name: $be_name}, bw: {id: $bw, name: $bw_name}})'
+
+# board info, object count
+cat matt.json | jq '.game.boards | to_entries | map((.value.header | to_entries | map(select(.key | test("^(board_size|title)$"; "g"))) | from_entries) + {board_id: .key} + ( ((.value.info) | to_entries | map(select(.key | test("^obj_cnt$"; "g"))) | from_entries)))'
+
+
+cat matt.json | jq '(.game.boards."39".objects) | keys'
+cat matt.json | jq '(.game.boards."39".objects) | to_entries'
+
+cat matt.json | jq '(.game.boards."39".objects) | to_entries | group_by(.value.type) | (first | first | .value.type) as $type | (first | length | tostring) as $length | $type + ": " + $length'
+
+
+# board objects summary
+cat matt.json | jq '(.game.boards."39".objects) | to_entries | group_by(.value.type) | map((. | length | tostring) as $length | (first | .value.type) as $type | (first | .value.tile[1]) as $char | "(" + $char + ") " + $type + ": " + $length) | sort'
+
+cat matt.json | jq '(.game.boards."38".objects) | to_entries | group_by(.value.type) | map((. | length | tostring) as $length | (first | .value.type) as $type | (first | .value.tile[1]) as $char | "(" + $char + ") " + $type + ": " + $length) | sort'
+
+
+cat matt.json | jq '(.game.boards."39".objects) | to_entries | map(.value.type)'
+cat matt.json | jq '(.game.boards."39".objects) | group_by(.type)'
+cat matt.json | jq '(.game.boards."39".objects."11") | keys'
+
+
+
 
     g - Global search (find all matches, not just the first)
     i - Case insensitive search
