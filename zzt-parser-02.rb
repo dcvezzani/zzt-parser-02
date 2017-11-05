@@ -78,6 +78,7 @@ class ZztParser02
     end
   end
 
+  # convert from json back to zzt file format
   class Serializer
 
     #attr_accessor :content, :start, :board_stop, :_game_header, :_boards, :_board_header, :_board_info, :_tiles, :_objects
@@ -146,7 +147,7 @@ class ZztParser02
         board_content += [:max_shots, :darkness, :bn, :bs, :bw, :be, :reenter, :message_len, :message, :pad_01, :time_limit, :pad_02, :obj_cnt].map{|key| board[:info][key]}.pack(BOARD_INFO_PARSE)
 
         board[:objects].each do |idx, object|
-          board_content += [:x, :y, :x_step, :y_step, :cycle, :p1, :p2, :p3, :p4, :ut, :uc, :pointer, :cur_ins, :len, :pad_01].map{|key| object[key]}.pack(OBJECT_PARSE)
+          board_content += [:x, :y, :x_step, :y_step, :cycle, :p1, :p2, :p3, :follower, :leader, :under_id, :under_color, :pointer, :cur_ins, :len, :pad_01].map{|key| object[key]}.pack(OBJECT_PARSE)
 
           if object[:data]
             board_content += object[:data].pack(OBJECT_DATA_PARSE)
@@ -158,6 +159,7 @@ class ZztParser02
     end
   end
 
+  # convert from zzt file format to json
   class Deserializer
 
     attr_accessor :content, :start, :board_stop, :_game_header, :_boards, :_board_header, :_board_info, :_tiles, :_objects, :current_board_idx
@@ -207,7 +209,7 @@ class ZztParser02
       return self._objects if self._objects.size > 0 and !reparse
 
       (0..self._board_info[:obj_cnt]).each do |obj_idx|
-        keys = [:x, :y, :x_step, :y_step, :cycle, :p1, :p2, :p3, :p4, :ut, :uc, :pointer, :cur_ins, :len, :pad_01]
+        keys = [:x, :y, :x_step, :y_step, :cycle, :p1, :p2, :p3, :follower, :leader, :under_id, :under_color, :pointer, :cur_ins, :len, :pad_01]
         values = self.content[(self.start)..self.board_stop].unpack(ZztParser02::OBJECT_PARSE)
         object_info = keys.zip(values).inject({}){ |h,(k,v)| h[k] = v; h }
 
@@ -229,11 +231,124 @@ class ZztParser02
 
         
         self._objects[fnd_idx][:type] = ZztParser02::CODES[self._objects[fnd_idx][:tile][1]]
+        self._objects[fnd_idx][:details] = {}
         self._objects[fnd_idx][:color] = ZztParser02::color_desc(self._objects[fnd_idx][:tile][2])
         self._objects[fnd_idx][:info] = object_info
+
+        self._objects[fnd_idx][:details] = {type: ZztParser02::CODES[self._objects[fnd_idx][:tile][1]]}.merge(object_details(self._objects[fnd_idx]))
       end
 
       self._objects
+    end
+
+    def object_details(obj)
+      code = obj[:tile][1]
+      keys = [:x, :y]
+      trans = nil
+
+      case code
+      when "00" #=> "Empty", 
+      when "01" #=> "Board Edge", 
+      when "02" #=> "Messenger", 
+      when "03" #=> "Monitor", 
+
+      when "04" #=> "Player", 
+        keys = [:cycle]
+
+      when "05" #=> "Ammo", 
+      when "06" #=> "Torch", 
+      when "07" #=> "Gem", 
+      when "08" #=> "Key", 
+      when "09" #=> "Door", 
+        
+      when "0a" #=> "Scroll", 
+        keys = [:cycle, :cur_ins, :len, :data]
+      when "0b" #=> "Passage", 
+        keys = [:p3]
+      when "0c" #=> "Duplicator", 
+        keys = [:x_step, :y_step, :p2]
+
+      when "0d" #=> "Bomb", 
+      when "0e" #=> "Energizer", 
+
+      when "0f" #=> "Star", 
+        keys = [:x_step, :y_step, :cycle, :p1]
+
+      when "10" #=> "Clockwise conveyer", 
+      when "11" #=> "Counterclockwise conveyor", 
+        
+      when "12" #=> "Bullet", 
+        keys = [:x_step, :y_step, :cycle, :p1]
+
+      when "13" #=> "Water", 
+      when "14" #=> "Forest", 
+      when "15" #=> "Solid", 
+      when "16" #=> "Normal", 
+      when "17" #=> "Breakable", 
+      when "18" #=> "Boulder", 
+      when "19" #=> "Slider: North-South", 
+      when "1a" #=> "Slider: East-West", 
+      when "1b" #=> "Fake", 
+      when "1c" #=> "Invisible wall", 
+        
+      when "1d" #=> "Blink Wall", 
+        keys = [:x_step, :y_step, :cycle, :p1, :p2]
+      when "1e" #=> "Transporter", 
+        keys = [:x_step, :y_step, :cycle]
+
+      when "1f" #=> "Line", 
+      when "20" #=> "Ricochet", 
+      when "21" #=> "Horizontal blink wall ray", 
+      when "2b" #=> "Vertical blink wall ray", 
+        
+      when "22" #=> "Bear", 
+        keys = [:cycle, :p1]
+        trans = {p1: :sensitivity}
+      when "23" #=> "Ruffian", 
+        keys = [:cycle, :p1, :p2]
+      when "24" #=> "Object", 
+        keys = [:cycle, :p1, :p2, :cur_ins, :len, :data]
+      when "25" #=> "Slime", 
+        keys = [:cycle, :p2]
+      when "26" #=> "Shark", 
+        keys = [:cycle, :p1]
+      when "27" #=> "Spinning gun", 
+        keys = [:cycle, :p1, :p2]
+      when "28" #=> "Pusher", 
+        keys = [:x_step, :y_step, :cycle]
+      when "29" #=> "Lion", 
+        keys = [:cycle, :p1]
+      when "2a" #=> "Tiger", 
+        keys = [:cycle, :p1, :p2, :p3]
+        trans = {p1: :intelligence, p2: :firing_rate, p3: :firing_type, firing_type: {0 => :bullet, 1 => :star}}
+      when "2c" #=> "Centipede head", 
+        keys = [:cycle, :p1, :p2]
+      when "2d", "2e", "2f" #=> "Centipede segment", 
+        keys = [:cycle]
+      end
+
+      trans_attrs = {}
+      filtered_obj = (keys.concat([:under_id, :under_color])).inject({}){|filtered_obj, attr| 
+        if trans && trans.has_key?(attr)
+          trans_attr = trans.delete(attr)
+          trans_value = obj[:info][attr]
+
+          if trans.has_key?(trans_attr)
+            trans_value = {value: trans_value, description: trans[trans_attr][trans_value]}
+          end
+
+          trans_attrs.merge!({attr => {name: trans_attr, details: trans_value}})
+        end
+
+        filtered_obj.merge!({ attr => obj[:info][attr]})
+      }
+
+      filtered_obj[:under_id] = {code: filtered_obj[:under_id], description: ZztParser02::CODES[filtered_obj[:under_id]]}
+      filtered_obj[:under_color] = ZztParser02::color_desc(filtered_obj[:under_color])
+
+      #debugger if trans_attrs.size > 0
+
+      filtered_obj.merge(trans_attrs)
     end
 
     def board_info(reparse = false)
@@ -384,7 +499,8 @@ class ZztParser02
   BOARD_SIZE_PARSE = "S"
   BOARD_INFO_PARSE = "C8H116H4SH32S"
   TILE_PARSE = "CH2H2"
-  OBJECT_PARSE = "CCSSSCCCH8CCH8SSH16"
+  # OBJECT_PARSE = "CCSSSCCCH8CCH8SSH16"
+  OBJECT_PARSE = "CCSSSCCCH4H4H2H2H8SSH16"
   OBJECT_DATA_PARSE = "A*"
 
   VALID_OBJECTS = %w{04 0a 0b 0c 0d 0f 10 11 12 1d 1e 22 23 24 25 26 27 28 29 2a 21 2b 2c 2d}

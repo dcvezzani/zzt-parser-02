@@ -58,12 +58,20 @@ cat matt.json | jq '(.game.boards."39".objects) | to_entries | group_by(.value.t
 
 cat matt.json | jq '(.game.boards."38".objects) | to_entries | group_by(.value.type) | map((. | length | tostring) as $length | (first | .value.type) as $type | (first | .value.tile[1]) as $char | "(" + $char + ") " + $type + ": " + $length) | sort'
 
+# boards objects summary
+cat matt.json | jq '.game.boards'
+cat matt.json | jq '.game.boards | to_entries'
+cat matt.json | jq '{object_summary: (.game.boards | to_entries | map({key: (.value.header.title + " (" + .key + ")"), value: ((.value.objects) | to_entries | group_by(.value.type) | map((. | length | tostring) as $length | (first | .value.type) as $type | (first | .value.tile[1]) as $char | "(" + $char + ") " + $type + ": " + $length) | sort)}) | from_entries)}'
+
+┤
+'╡'.ord
 
 cat matt.json | jq '(.game.boards."39".objects) | to_entries | map(.value.type)'
 cat matt.json | jq '(.game.boards."39".objects) | group_by(.type)'
 cat matt.json | jq '(.game.boards."39".objects."11") | keys'
 
-
+# more details for file format
+http://www.shikadi.net/moddingwiki/ZZT_Format
 
 
     g - Global search (find all matches, not just the first)
