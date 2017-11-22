@@ -265,6 +265,7 @@ class ZztParser02
         keys = [:cycle, :cur_ins, :len, :data]
       when "0b" #=> "Passage", 
         keys = [:p3]
+        #TODO: trans = {p3: :room, room: lambda{|idx| {id: idx, name: @_boards[idx][:header][:title]}}}
       when "0c" #=> "Duplicator", 
         keys = [:x_step, :y_step, :p2]
 
